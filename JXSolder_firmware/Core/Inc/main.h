@@ -29,6 +29,18 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32g4xx_hal.h"
 
+#include "stm32g4xx_ll_ucpd.h"
+#include "stm32g4xx_ll_bus.h"
+#include "stm32g4xx_ll_cortex.h"
+#include "stm32g4xx_ll_rcc.h"
+#include "stm32g4xx_ll_system.h"
+#include "stm32g4xx_ll_utils.h"
+#include "stm32g4xx_ll_pwr.h"
+#include "stm32g4xx_ll_gpio.h"
+#include "stm32g4xx_ll_dma.h"
+
+#include "stm32g4xx_ll_exti.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* Struct to hold flash_data values */
@@ -94,51 +106,48 @@ void Error_Handler(void);
 #define VERSION_BIT_3_GPIO_Port GPIOC
 #define HEATER_Pin GPIO_PIN_0
 #define HEATER_GPIO_Port GPIOF
-#define CURRENT_Pin GPIO_PIN_1
-#define CURRENT_GPIO_Port GPIOF
-#define ENC_A_Pin GPIO_PIN_0
-#define ENC_A_GPIO_Port GPIOA
-#define I_LEAK_Pin GPIO_PIN_1
-#define I_LEAK_GPIO_Port GPIOA
-#define VBUS_Pin GPIO_PIN_2
-#define VBUS_GPIO_Port GPIOA
-#define THERMOCOUPLE_Pin GPIO_PIN_3
+#define Pass_Pin GPIO_PIN_1
+#define Pass_GPIO_Port GPIOF
+#define FET_EN_Pin GPIO_PIN_10
+#define FET_EN_GPIO_Port GPIOG
+#define THERMOCOUPLE_Pin GPIO_PIN_0
 #define THERMOCOUPLE_GPIO_Port GPIOA
-#define HANDLE_INP_1_Pin GPIO_PIN_4
-#define HANDLE_INP_1_GPIO_Port GPIOA
-#define HANDLE_INP_2_Pin GPIO_PIN_5
-#define HANDLE_INP_2_GPIO_Port GPIOA
-#define STAND_INP_Pin GPIO_PIN_6
-#define STAND_INP_GPIO_Port GPIOA
-#define SW_2_Pin GPIO_PIN_7
-#define SW_2_GPIO_Port GPIOA
-#define SW_2_EXTI_IRQn EXTI9_5_IRQn
-#define USR_2_Pin GPIO_PIN_0
-#define USR_2_GPIO_Port GPIOB
-#define USR_3_Pin GPIO_PIN_1
-#define USR_3_GPIO_Port GPIOB
-#define USR_4_Pin GPIO_PIN_2
-#define USR_4_GPIO_Port GPIOB
-#define SPI2_SD_CS_Pin GPIO_PIN_10
-#define SPI2_SD_CS_GPIO_Port GPIOB
-#define SPI2_DC_Pin GPIO_PIN_11
-#define SPI2_DC_GPIO_Port GPIOB
-#define SPI2_RST_Pin GPIO_PIN_12
-#define SPI2_RST_GPIO_Port GPIOB
-#define SPI2_CS_Pin GPIO_PIN_14
-#define SPI2_CS_GPIO_Port GPIOB
-#define USR_1_Pin GPIO_PIN_8
-#define USR_1_GPIO_Port GPIOA
+#define CURRENT_Pin GPIO_PIN_1
+#define CURRENT_GPIO_Port GPIOA
+#define VBUS_CAPS_Pin GPIO_PIN_4
+#define VBUS_CAPS_GPIO_Port GPIOA
+#define VBUS_DOCK_Pin GPIO_PIN_5
+#define VBUS_DOCK_GPIO_Port GPIOA
+#define VBUS_USB_Pin GPIO_PIN_6
+#define VBUS_USB_GPIO_Port GPIOA
+#define VBUS_XT60_Pin GPIO_PIN_7
+#define VBUS_XT60_GPIO_Port GPIOA
+#define STAND_INP_Pin GPIO_PIN_0
+#define STAND_INP_GPIO_Port GPIOB
+#define HANDLE_INP_2_Pin GPIO_PIN_1
+#define HANDLE_INP_2_GPIO_Port GPIOB
+#define HANDLE_INP_1_Pin GPIO_PIN_2
+#define HANDLE_INP_1_GPIO_Port GPIOB
+#define PassB12_Pin GPIO_PIN_12
+#define PassB12_GPIO_Port GPIOB
+#define SW_3_Pin GPIO_PIN_13
+#define SW_3_GPIO_Port GPIOB
+#define I_LIM_BYP_Pin GPIO_PIN_14
+#define I_LIM_BYP_GPIO_Port GPIOB
+#define ENC_A_Pin GPIO_PIN_15
+#define ENC_A_GPIO_Port GPIOA
 #define ENC_B_Pin GPIO_PIN_3
 #define ENC_B_GPIO_Port GPIOB
-#define SW_1_Pin GPIO_PIN_5
-#define SW_1_GPIO_Port GPIOB
-#define SW_1_EXTI_IRQn EXTI9_5_IRQn
+#define SW_2_Pin GPIO_PIN_5
+#define SW_2_GPIO_Port GPIOB
+#define SW_2_EXTI_IRQn EXTI9_5_IRQn
 #define BUZZER_Pin GPIO_PIN_7
 #define BUZZER_GPIO_Port GPIOB
-#define SW_3_Pin GPIO_PIN_8
-#define SW_3_GPIO_Port GPIOB
-#define SW_3_EXTI_IRQn EXTI9_5_IRQn
+#define SW_1_Pin GPIO_PIN_8
+#define SW_1_GPIO_Port GPIOB
+#define SW_1_EXTI_IRQn EXTI9_5_IRQn
+#define USR_1_Pin GPIO_PIN_9
+#define USR_1_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 void handle_button_status(void);
