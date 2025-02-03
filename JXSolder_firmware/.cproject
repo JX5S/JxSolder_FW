@@ -58,6 +58,7 @@
 									<listOptionValue builtIn="false" value="../USB_Device/Target"/>
 									<listOptionValue builtIn="false" value="../Middlewares/ST/STM32_USB_Device_Library/Core/Inc"/>
 									<listOptionValue builtIn="false" value="../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc"/>
+									<listOptionValue builtIn="false" value="../Core/LIB"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.52503549" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>

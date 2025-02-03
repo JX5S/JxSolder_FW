@@ -146,8 +146,6 @@ void Error_Handler(void);
 #define SW_1_Pin GPIO_PIN_8
 #define SW_1_GPIO_Port GPIOB
 #define SW_1_EXTI_IRQn EXTI9_5_IRQn
-#define USR_1_Pin GPIO_PIN_9
-#define USR_1_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 void handle_button_status(void);
