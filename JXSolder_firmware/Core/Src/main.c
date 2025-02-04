@@ -307,33 +307,33 @@ Flash_values default_flash_values = {.startup_temperature = 330,
 
 /* List of names for settings menu */
 #define menu_length 27
-char menu_names[menu_length][30] = { "Startup Temp °C    ",
-							"Temp Offset °C      ",
-							"Standby Temp °C   ",
-							"Standby Time [min]  ",
-							"Sleep Time [min]    ",
-							"Buzzer Enabled      ",
-							"Preset Temp 1 °C   ",
-							"Preset Temp 2 °C   ",
-							"GPIO4 ON at run    ",
-							"Screen Rotation     ",
-							"Limit Power [W]     ",
-							"I Measurement       ",
-							"Startup Beep         ",
-							"Temp in Celsius     ",
-							"Temp cal 100         ",
-							"Temp cal 200         ",
-							"Temp cal 300         ",
-							"Temp cal 350         ",
-							"Temp cal 400         ",
-							"Temp cal 450         ",
-							"Serial DEBUG        ",
-							"Disp Temp. filter    ",
-							"Start at prev. temp ",
-							"3-button mode        ",
-							"-Load Default-       ",
-							"-Save and Reboot- ",
-							"-Exit no Save-        "};
+char menu_names[menu_length][30] = { "Startup Temp |C",
+							"Temp Offset |C",
+							"Standby Temp |C",
+							"Standby T [min]",
+							"Sleep Time [min]",
+							"Buzzer Enabled",
+							"Preset Temp 1 |C",
+							"Preset Temp 2 |C",
+							"GPIO4 ON at run",
+							"Screen Rotation",
+							"Limit Power [W]",
+							"I Measurement",
+							"Startup Beep",
+							"Temp in Celsius",
+							"Temp cal 100",
+							"Temp cal 200",
+							"Temp cal 300",
+							"Temp cal 350",
+							"Temp cal 400",
+							"Temp cal 450",
+							"Serial DEBUG",
+							"Disp Temp filter",
+							"Start at prev T",
+							"3-button mode",
+							"-Load Default-",
+							"-Save and Reboot-",
+							"-Exit no Save-"};
 
 /* PID data */
 float PID_setpoint = 0.0;
@@ -642,10 +642,6 @@ void settings_menu(){
 			ssd1306_SetCursor(81, 2);
 			ssd1306_WriteString("JXSolder", Font_6x8, White);
 
-			ssd1306_Line(0, 10, 127, 10, White);
-			ssd1306_Line(0, 10, 0, 64, White);
-			ssd1306_Line(127, 10, 127, 64, White);
-
 			handle_button_status();
 			if(menu_level == 0){
 				TIM2->CNT = clamp(TIM2->CNT, 1000, 1000000);
@@ -653,10 +649,10 @@ void settings_menu(){
 			}
 			if (menu_level == 1){
 				if (menu_cursor_position == 10){
-					((float*)&flash_values)[menu_cursor_position] = (float)old_value + round(((float)(TIM2->CNT - 1000.0) / 2.0 - (float)menu_cursor_position)) * 5;
+					((float*)&flash_values)[menu_cursor_position] = (float)old_value + round(((float)(TIM2->CNT - 1000.0) / 4.0 - (float)menu_cursor_position)) * 5;
 				}
 				else{
-					((float*)&flash_values)[menu_cursor_position] = (float)old_value + (float)(TIM2->CNT - 1000.0) / 2.0 - (float)menu_cursor_position;
+					((float*)&flash_values)[menu_cursor_position] = (float)old_value + (float)(TIM2->CNT - 1000.0) / 4.0 - (float)menu_cursor_position;
 				}
 
 				if ((menu_cursor_position == 5) || (menu_cursor_position == 8) || (menu_cursor_position == 11) || (menu_cursor_position == 12) || (menu_cursor_position == 13) || (menu_cursor_position == 20) || (menu_cursor_position == 22) || (menu_cursor_position == 23)){
@@ -684,41 +680,50 @@ void settings_menu(){
 
 			if(menu_cursor_position > menu_length-1){
 							menu_cursor_position = menu_length-1;
-							TIM2->CNT = 1000 + (menu_length-1)*2;
+							TIM2->CNT = 1000 + (menu_length-1)*4;
 			}
 
-			if(menu_cursor_position >= 6){
-				menu_start = menu_cursor_position-6;
+			if(menu_cursor_position >= 4){
+				menu_start = menu_cursor_position-4;
 			}
 			else{
 				menu_start = 0;
 			}
 
-			if((HAL_GPIO_ReadPin (SW_1_GPIO_Port, SW_1_Pin) == BTN_PRESSED) && (menu_cursor_position < menu_length-3)){
-				if(menu_level == 0){
-					old_value = ((float*)&flash_values)[menu_cursor_position];
-					old_menu_cursor_position = menu_cursor_position;
-				}
-				if(menu_level == 1){
-					TIM2->CNT = old_menu_cursor_position*2 + 1000;
-				}
+			// Evaluate menu option clicked
+			if(HAL_GPIO_ReadPin (SW_1_GPIO_Port, SW_1_Pin) == BTN_PRESSED){
+				switch(menu_cursor_position){
+					case menu_length - 1:
+						menu_active = 0;
+					break;
+					case menu_length - 2:
+						menu_active = 0;
+						FlashWrite(&flash_values);
+						HAL_NVIC_SystemReset();
+					break;
+					case menu_length - 3:
+						flash_values = default_flash_values;
+					break;
 
-				menu_level = abs(menu_level-1);
-				HAL_Delay(200);
-			}
-			else if((HAL_GPIO_ReadPin (SW_1_GPIO_Port, SW_1_Pin) == BTN_PRESSED) && (menu_cursor_position == menu_length-1)){
-				menu_active = 0;
-			}
-			else if((HAL_GPIO_ReadPin (SW_1_GPIO_Port, SW_1_Pin) == BTN_PRESSED) && (menu_cursor_position == menu_length-2)){
-				menu_active = 0;
-				FlashWrite(&flash_values);
-				HAL_NVIC_SystemReset();
-			}
-			else if((HAL_GPIO_ReadPin (SW_1_GPIO_Port, SW_1_Pin) == BTN_PRESSED) && (menu_cursor_position == menu_length-3)){
-				flash_values = default_flash_values;
+					default:
+						if(menu_level == 0){ // normal option selected; load value from flash
+							old_value = ((float*)&flash_values)[menu_cursor_position];
+							old_menu_cursor_position = menu_cursor_position;
+						}
+						if(menu_level == 1){ // Restore menu position
+							TIM2->CNT = old_menu_cursor_position*4 + 1000;
+						}
+
+						menu_level = abs(menu_level-1);
+						HAL_Delay(200);
+				}
 			}
 
-			for(int i = menu_start;i<=menu_start+6;i++){
+			// Write out menus
+			if (menu_level == 0){
+
+			}
+			for(int i = menu_start;i<=menu_start+5;i++){
 
 				int upper_corner_y = 13+(i-menu_start)*9;
 
@@ -735,19 +740,34 @@ void settings_menu(){
 				char string[10];
 				memset(&string, '\0', 10);
 				if(i < menu_length-3){
-					if((i == menu_cursor_position) && (menu_level == 1)){
+					if(i == menu_cursor_position){
 						left_align_float(string, (((float*)&flash_values)[i]), strlen(string));
-//						//LCD_PutStr(190, 45+(i-menu_start)*25, string, FONT_arial_20X23, RGB_to_BRG(C_BLACK), RGB_to_BRG(C_WHITE));
+						ssd1306_SetCursor(107, upper_corner_y);
+						ssd1306_WriteString(string, Font_6x8, Black);
 					}
 					else{
 						left_align_float(string, (((float*)&flash_values)[i]), strlen(string));
-//						//LCD_PutStr(190, 45+(i-menu_start)*25, string, FONT_arial_20X23, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
+						ssd1306_SetCursor(107, upper_corner_y);
+						ssd1306_WriteString(string, Font_6x8, White);
 					}
 				}
 				if(i >= menu_length-3){
-//					//LCD_PutStr(190, 45+(i-menu_start)*25, "        ", FONT_arial_20X23, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
+						ssd1306_SetCursor(107, upper_corner_y);
+						ssd1306_WriteString(string, Font_6x8, Black);
 				}
 			}
+
+			ssd1306_Line(126, 11, 126, 63, Black);
+			if(menu_cursor_position < menu_length - 1){
+				ssd1306_Line(0, 10, 0, 64, White);
+				ssd1306_Line(127, 10, 127, 64, White);
+			} else {
+				ssd1306_Line(0, 10, 0, 58, White);
+				ssd1306_Line(127, 10, 127, 58, White);
+				ssd1306_Line(0, 58, 127, 58, White);
+			}
+			ssd1306_Line(0, 10, 127, 10, White);
+
 			ssd1306_UpdateScreen();
 		}
 	}
@@ -839,13 +859,12 @@ void update_display(){
 }
 
 void LCD_draw_main_screen(){
-	//UG_FillScreen(RGB_to_BRG(C_BLACK));
+	ssd1306_Fill(Black);
 
-	//LCD_PutStr(53, 8, "AxxSolder", FONT_arial_19X22, RGB_to_BRG(C_YELLOW), RGB_to_BRG(C_BLACK));
-	//LCD_DrawLine(0,36,240,36,RGB_to_BRG(C_YELLOW));
-	//LCD_DrawLine(0,37,240,37,RGB_to_BRG(C_YELLOW));
-	//LCD_DrawLine(0,38,240,38,RGB_to_BRG(C_YELLOW));
-
+	ssd1306_SetCursor(80, 0);
+	ssd1306_WriteString("JXSolder", Font_6x8, White);
+	ssd1306_Line(0, 10, 127, 10, White);
+	ssd1306_UpdateScreen();
 
 	//LCD_PutStr(19, 45, "Set temp", FONT_arial_20X23, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
 	//UG_DrawCircle(128, 76, 5, RGB_to_BRG(C_WHITE));
