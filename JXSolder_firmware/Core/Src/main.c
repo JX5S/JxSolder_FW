@@ -154,6 +154,8 @@ char DISPLAY_buffer[40];
 /* ADC Buffer */
 #define ADC1_BUF_LEN 57 //3*19
 uint16_t ADC1_BUF[ADC1_BUF_LEN];
+#define ADC2_BUF_LEN 4
+uint16_t ADC2_BUF[ADC2_BUF_LEN];
 
 /* RAW ADC from current measurement */
 uint16_t current_raw = 0;
@@ -308,13 +310,13 @@ Flash_values default_flash_values = {.startup_temperature = 330,
 /* List of names for settings menu */
 #define menu_length 27
 char menu_names[menu_length][30] = { "Startup Temp |C",
-							"Temp Offset |C",
-							"Standby Temp |C",
+							"Temp Offset|C",
+							"Standby Temp|C",
 							"Standby T [min]",
 							"Sleep Time [min]",
 							"Buzzer Enabled",
-							"Preset Temp 1 |C",
-							"Preset Temp 2 |C",
+							"Preset Temp 1|C",
+							"Preset Temp 2|C",
 							"GPIO4 ON at run",
 							"Screen Rotation",
 							"Limit Power [W]",
@@ -774,26 +776,49 @@ void settings_menu(){
 }
 
 void update_display(){
-	memset(&DISPLAY_buffer, '\0', sizeof(DISPLAY_buffer));
-	sprintf(DISPLAY_buffer, "%.f", convert_temperature(sensor_values.set_temperature));
-	if(convert_temperature(sensor_values.set_temperature) < 99.5){
-		DISPLAY_buffer[2] = 32;
-		DISPLAY_buffer[3] = 32;
+	char unit_of_temp = (flash_values.deg_celsius == 1) ? 'C' : 'F';
+
+	ssd1306_Fill(Black);
+
+	// Power bar
+	ssd1306_Line(123, 0, 123, 63, White);
+
+	// Presets presets
+	ssd1306_Line(7, 56, 7, 63, White);
+	ssd1306_Line(8, 55, 50, 55, White);
+	ssd1306_Line(51, 56, 51, 63, White);
+	ssd1306_SetCursor(9, 57);
+	ssd1306_WriteString("Presets", Font_6x8, White);
+
+	sprintf(DISPLAY_buffer, "%.0f", convert_temperature(flash_values.preset_temp_1));
+	for (int i = 0; i < 33; i+=32){
+		ssd1306_Line(i+62, 63, i+62, 56, White);
+		ssd1306_Line(i+63, 55, i+81, 55, White);
+		ssd1306_Line(i+82, 56, i+82, 63, White);
+		ssd1306_SetCursor(i+64, 57);
+		ssd1306_WriteString(DISPLAY_buffer, Font_6x8, White); // First pass - preset_1, second pass - preset_2. Not an elegant solution
+		sprintf(DISPLAY_buffer, "%.0f", convert_temperature(flash_values.preset_temp_2));
 	}
-	//LCD_PutStr(19, 70, DISPLAY_buffer, FONT_arial_36X44_NUMBERS, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
+
+
+	sprintf(DISPLAY_buffer, "Set:%3.0f|%c", convert_temperature(sensor_values.set_temperature), unit_of_temp);
+	ssd1306_SetCursor(39, 15);
+	ssd1306_WriteString(DISPLAY_buffer, Font_7x10, White);
 
 	if(cartridge_state == DETACHED) {
-		//LCD_PutStr(15, 160, " ---  ", FONT_arial_36X44_NUMBERS, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
+		ssd1306_SetCursor(39, 28);
+		sprintf(DISPLAY_buffer, "A:---|%c", unit_of_temp);
+		ssd1306_WriteString(DISPLAY_buffer, Font_11x18, White);
 	}
 	else{
-		memset(&DISPLAY_buffer, '\0', sizeof(DISPLAY_buffer));
-		sprintf(DISPLAY_buffer, "%.f", convert_temperature(sensor_values.thermocouple_temperature_filtered));
-		if(convert_temperature(sensor_values.thermocouple_temperature_filtered) < 99.5){
-			DISPLAY_buffer[2] = 32;
-			DISPLAY_buffer[3] = 32;
-		}
+		sprintf(DISPLAY_buffer, "A:%3.0f|%c", convert_temperature(sensor_values.thermocouple_temperature_filtered), unit_of_temp);
+		ssd1306_SetCursor(39, 28);
+		ssd1306_WriteString(DISPLAY_buffer, Font_11x18, White);
 		//LCD_PutStr(19, 160, DISPLAY_buffer, FONT_arial_36X44_NUMBERS, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
 	}
+
+	ssd1306_DrawRectangle(36, 26, 117, 45, White);
+	ssd1306_DrawRectangle(37, 25, 116, 46, White);
 
 	memset(&DISPLAY_buffer, '\0', sizeof(DISPLAY_buffer));
 	sprintf(DISPLAY_buffer, "%.1f", sensor_values.bus_voltage);
@@ -808,15 +833,26 @@ void update_display(){
 	}
 	//LCD_PutStr(56, 275, DISPLAY_buffer, FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
 
-	if(attached_handle == T210){
-		//LCD_PutStr(125, 235, "T210   ", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
+	ssd1306_SetCursor(0, 9);
+	switch(attached_handle){
+		case T245:
+			ssd1306_WriteString("T245", Font_6x8, White);
+		break;
+		case T210:
+			ssd1306_WriteString("T210", Font_6x8, White);
+		break;
+		case NT115:
+			ssd1306_WriteString("NT115", Font_6x8, White);
+		break;
 	}
-	else if(attached_handle == T245){
-		//LCD_PutStr(125, 235, "T245   ", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	else if(attached_handle == NT115){
-		//LCD_PutStr(125, 235, "NT115", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
+
+	ssd1306_SetCursor(0, 19);
+	ssd1306_WriteString("Stand", Font_6x8, White);
+	sprintf(DISPLAY_buffer, "%d", ADC2_BUF[3]);
+	ssd1306_SetCursor(0, 29);
+	ssd1306_WriteString(DISPLAY_buffer, Font_6x8, White);
+	ssd1306_SetCursor(0, 39);
+	ssd1306_WriteString("140W", Font_6x8, White);
 
 	if(sensor_values.max_power_watt < 100){
 		sprintf(DISPLAY_buffer, "  %.0f W", sensor_values.max_power_watt);
@@ -856,80 +892,8 @@ void update_display(){
 		standby_state_written_to_LCD = 0;
 		sleep_state_written_to_LCD = 0;
 	}
-}
-
-void LCD_draw_main_screen(){
-	ssd1306_Fill(Black);
-
-	ssd1306_SetCursor(80, 0);
-	ssd1306_WriteString("JXSolder", Font_6x8, White);
-	ssd1306_Line(0, 10, 127, 10, White);
 	ssd1306_UpdateScreen();
-
-	//LCD_PutStr(19, 45, "Set temp", FONT_arial_20X23, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	//UG_DrawCircle(128, 76, 5, RGB_to_BRG(C_WHITE));
-	//UG_DrawCircle(128, 76, 4, RGB_to_BRG(C_WHITE));
-	//UG_DrawCircle(128, 76, 3, RGB_to_BRG(C_WHITE));
-	if(flash_values.deg_celsius == 1){
-		//LCD_PutStr(135, 70, "C", FONT_arial_36X44_C, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	else{
-		//LCD_PutStr(135, 70, "F", FONT_arial_36X44_F, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	//LCD_PutStr(19, 135, "Actual temp", FONT_arial_20X23, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	//UG_DrawCircle(128, 166, 5, RGB_to_BRG(C_WHITE));
-	//UG_DrawCircle(128, 166, 4, RGB_to_BRG(C_WHITE));
-	//UG_DrawCircle(128, 166, 3, RGB_to_BRG(C_WHITE));
-	if(flash_values.deg_celsius == 1){
-		//LCD_PutStr(135, 160, "C", FONT_arial_36X44_C, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	else{
-		//LCD_PutStr(135, 160, "F", FONT_arial_36X44_F, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	//UG_DrawFrame(11, 129, 187, 215, RGB_to_BRG(C_WHITE));
-	//UG_DrawFrame(10, 128, 188, 216, RGB_to_BRG(C_WHITE));
-
-	//LCD_PutStr(11, 235, "Handle type:", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	//LCD_PutStr(11, 255, "Input voltage:         V", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	if(flash_values.deg_celsius == 1){
-		//LCD_PutStr(11, 275, "MCU:      °C", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	else{
-		//LCD_PutStr(11, 275, "MCU:      °F", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	}
-	//LCD_PutStr(113, 275, "SRC:", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-	switch(power_source){
-	case POWER_DC:
-		//LCD_PutStr(160, 275, "DC", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-		break;
-	case POWER_USB:
-		//LCD_PutStr(160, 275, "USB", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-		break;
-	case POWER_BAT:
-		//LCD_PutStr(160, 275, "BAT", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
-		break;
-	}
-
-	//UG_DrawLine(0, 296, 240, 296, RGB_to_BRG(C_DARK_SEA_GREEN));
-	//UG_DrawLine(0, 297, 240, 297, RGB_to_BRG(C_DARK_SEA_GREEN));
-
-	if(flash_values.three_button_mode == 1){
-		//LCD_PutStr(11, 301, "TEMP          UP   DOWN", FONT_arial_20X23, RGB_to_BRG(C_DARK_SEA_GREEN), RGB_to_BRG(C_BLACK));
-	}
-	else{
-		//LCD_PutStr(11, 301, "PRESETS", FONT_arial_20X23, RGB_to_BRG(C_DARK_SEA_GREEN), RGB_to_BRG(C_BLACK));
-		memset(DISPLAY_buffer, '\0', sizeof(DISPLAY_buffer));
-		sprintf(DISPLAY_buffer, "%.0f", convert_temperature(flash_values.preset_temp_1));
-		//LCD_PutStr(130, 301, DISPLAY_buffer, FONT_arial_20X23, RGB_to_BRG(C_DARK_SEA_GREEN), RGB_to_BRG(C_BLACK));
-		memset(DISPLAY_buffer, '\0', sizeof(DISPLAY_buffer));
-		sprintf(DISPLAY_buffer, "%.0f", convert_temperature(flash_values.preset_temp_2));
-		//LCD_PutStr(190, 301, DISPLAY_buffer, FONT_arial_20X23, RGB_to_BRG(C_DARK_SEA_GREEN), RGB_to_BRG(C_BLACK));
-	}
-
-	//UG_DrawFrame(208, 64, 232, 270, RGB_to_BRG(C_WHITE));
-	//UG_DrawFrame(209, 65, 231, 269, RGB_to_BRG(C_WHITE));
-
-	//LCD_PutStr(205, 275, "0 W", FONT_arial_17X18, RGB_to_BRG(C_WHITE), RGB_to_BRG(C_BLACK));
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t*)ADC2_BUF, (uint32_t)ADC2_BUF_LEN);
 }
 
 void show_popup(char *text){
@@ -937,7 +901,7 @@ void show_popup(char *text){
 	//UG_FillFrame(15, 55, 230, 100, RGB_to_BRG(C_WHITE));
 	//LCD_PutStr(20, 70, text, FONT_arial_20X23, RGB_to_BRG(C_ORANGE), RGB_to_BRG(C_WHITE));
 	HAL_Delay(2000);
-	LCD_draw_main_screen();
+	update_display();
 	standby_state_written_to_LCD = 0;
 	sleep_state_written_to_LCD = 0;
 }
@@ -1191,9 +1155,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
 /* Timer Callbacks */
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
 	if (((htim == &htim1) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)) && (current_measurement_requested == 1)){
-		current_measurement_requested = 0;
-		current_measurement_done = 0;
-		HAL_ADC_Start_IT(&hadc2);
+
 	}
 }
 
@@ -1278,12 +1240,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 		update_heater_PWM();
 		thermocouple_measurement_done = 1;
 	}
-	if ((hadc->Instance == ADC2) && (current_measurement_done == 0)){
-		sensor_values.leak_current = HAL_ADC_GetValue(&hadc2);
-		current_raw = HAL_ADC_GetValue(&hadc2);
-		update_heater_PWM();
-		current_measurement_done = 1;
-	}
 }
 
 /* ADC watchdog Callback */
@@ -1357,6 +1313,7 @@ int main(void)
 	__HAL_TIM_ENABLE_IT(&htim7, TIM_IT_UPDATE);
 
 	HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
+	HAL_ADC_Start_DMA(&hadc2, (uint32_t*)ADC2_BUF, (uint32_t)ADC2_BUF_LEN);
 
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)ADC1_BUF, (uint32_t)ADC1_BUF_LEN);	//Start ADC DMA mode
@@ -1365,7 +1322,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	HAL_Delay(200);
+	HAL_Delay(20);
 
 	// Check if user data in flash is valid, if not - write default parameters
 	if(!FlashCheckCRC()){
@@ -1374,13 +1331,17 @@ int main(void)
 		HAL_Delay(100);
 	}
 
-	/* Read flash data */
-	FlashRead(&flash_values);
-
 	/* Initiate display */
 	ssd1306_Init();
 	ssd1306_Fill(Black);
+	ssd1306_SetCursor(0, 19);
+	ssd1306_WriteString("JXSolder", Font_16x26, White);
 	ssd1306_UpdateScreen();
+
+	HAL_Delay(180);
+
+	/* Read flash data */
+	FlashRead(&flash_values);
 
 	/* Set startup state */
 	change_state(HALTED);
@@ -1433,9 +1394,6 @@ int main(void)
 	 *
 	 *
 	 */
-
-	/* Draw the main screen decoration */
-	LCD_draw_main_screen();
 
 	/* Start-up beep */
 	beep_startup(flash_values.startup_beep);
