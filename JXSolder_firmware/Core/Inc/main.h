@@ -132,6 +132,7 @@ void Error_Handler(void);
 #define PassB12_GPIO_Port GPIOB
 #define SW_3_Pin GPIO_PIN_13
 #define SW_3_GPIO_Port GPIOB
+#define SW_3_EXTI_IRQn EXTI15_10_IRQn
 #define I_LIM_BYP_Pin GPIO_PIN_14
 #define I_LIM_BYP_GPIO_Port GPIOB
 #define ENC_A_Pin GPIO_PIN_15
